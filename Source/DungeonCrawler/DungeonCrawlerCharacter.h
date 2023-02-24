@@ -99,8 +99,8 @@ public:
 	/** Returns FirstPersonCameraComponent subobject **/
 	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
 	USoundCue* propellerAudioCue;
+	USoundCue* wallAudioCue;
     UAudioComponent* propellerAudioComponent;
-	
 	virtual void Tick( float DeltaTime ) override;
 	
 	bool AtRest();
@@ -122,12 +122,12 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = Crawler)
 	float stepGrid = 600;
-
+	void isValidSoundPlay(USoundCue* Sound);
 	bool CanRotateQ = true;
 	bool CanRotateE = true;
 	APlayerController* PController;
 	bool isMovingzero = true;
-    
+ 	bool resultCast(FVector direction);
 
 };
 

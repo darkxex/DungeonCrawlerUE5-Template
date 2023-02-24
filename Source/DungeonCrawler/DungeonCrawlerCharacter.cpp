@@ -44,15 +44,20 @@ ADungeonCrawlerCharacter::ADungeonCrawlerCharacter()
         TEXT("'/Game/Sound/FootStep.FootStep'")
     );
 
+	static ConstructorHelpers::FObjectFinder<USoundCue> wallCue(
+        TEXT("'/Game/Sound/WallCol.WallCol'")
+    );
+
     // Store a reference to the Cue asset - we'll need it later.
     propellerAudioCue = propellerCue.Object;
-
+	wallAudioCue = wallCue.Object;
     // Create an audio component, the audio component wraps the Cue, 
     // and allows us to ineract with
     // it, and its parameters from code.
     propellerAudioComponent = CreateDefaultSubobject<UAudioComponent>(
         TEXT("PropellerAudioComp")
     );
+
     // I don't want the sound playing the moment it's created.
     propellerAudioComponent->bAutoActivate = false;
     // I want the sound to follow the pawn around, so I attach it to the Pawns root.
@@ -60,12 +65,7 @@ ADungeonCrawlerCharacter::ADungeonCrawlerCharacter()
     // I want the sound to come from slighty in front of the pawn.
     propellerAudioComponent->SetRelativeLocation(FVector(100.0f, 0.0f, 0.0f));
 
-   // Attach our sound cue to the SoundComponent (outside the constructor)
-   if (propellerAudioCue->IsValidLowLevelFast()) {
-        propellerAudioComponent->SetSound(propellerAudioCue);
-   }
 
-   
 
 }
 
@@ -127,25 +127,53 @@ void ADungeonCrawlerCharacter::Tick(float DeltaTime)
 	FRotator effectRotate = FMath::RInterpConstantTo(PController->GetControlRotation(),targetRotation, DeltaTime, transitionRotationSpeed);
 	PController->SetControlRotation(effectRotate);
 
-
 }
 
-void sound()
-{   }
 bool ADungeonCrawlerCharacter::AtRest()
 {
-	
 	float dotRotate = UKismetMathLibrary::Dot_VectorVector(PController->GetControlRotation().Vector(),targetRotation.Vector());
 	
 	if ((FVector::Distance(GetActorLocation(),targetGridPos) < 50 ) && dotRotate == 1 )
 	{
-  		 propellerAudioComponent->Play();
+  		 
 		return true;
 	}
 
 	else
 	{return false;}
 	
+}
+
+void ADungeonCrawlerCharacter::isValidSoundPlay(USoundCue *sound)
+{
+	if (sound->IsValidLowLevelFast()) {
+		UE_LOG(LogTemp, Display, TEXT("Play Sound"));
+       		propellerAudioComponent->SetSound(sound);
+			propellerAudioComponent->Play();
+			}
+}
+
+bool ADungeonCrawlerCharacter::resultCast(FVector direction)
+{
+FHitResult Hit;
+FVector TraceStart = GetActorLocation();
+FVector TraceEnd = GetActorLocation() + direction * stepGrid;
+FCollisionQueryParams QueryParams;
+QueryParams.AddIgnoredActor(this);
+GetWorld()->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECollisionChannel::ECC_Visibility, QueryParams);
+DrawDebugLine(GetWorld(), TraceStart, TraceEnd, Hit.bBlockingHit ? FColor::Blue : FColor::Red, false, 0.1f, 0, 1.0f);
+UE_LOG(LogTemp, Log, TEXT("Tracing line: %s to %s"), *TraceStart.ToCompactString(), *TraceEnd.ToCompactString());
+
+if (Hit.bBlockingHit && IsValid(Hit.GetActor()))
+{
+	UE_LOG(LogTemp, Log, TEXT("Trace hit actor: %s"), *Hit.GetActor()->GetName());
+	isValidSoundPlay(wallAudioCue);
+	return false;
+}
+else {
+	 return true;
+}
+   
 }
 
 void ADungeonCrawlerCharacter::Move(const FInputActionValue& Value)
@@ -160,24 +188,32 @@ void ADungeonCrawlerCharacter::Move(const FInputActionValue& Value)
 		//AddMovementInput(GetActorForwardVector(), MovementVector.Y);
 		if (MovementVector.Y > 0)
 		{
-			if (AtRest())
-			targetGridPos += (GetActorForwardVector()*stepGrid);
+			if (AtRest() && resultCast(GetActorForwardVector()) )
+			{targetGridPos += (GetActorForwardVector()*stepGrid);
+			isValidSoundPlay(propellerAudioCue);
+			}
 		}
 		if (MovementVector.Y < 0)
 		{
-			if (AtRest())
-			targetGridPos -= (GetActorForwardVector()*stepGrid);
+			if (AtRest() && resultCast(-GetActorForwardVector()))
+			{targetGridPos -= (GetActorForwardVector()*stepGrid);
+			isValidSoundPlay(propellerAudioCue);
+			}
 		}
 
 		if (MovementVector.X > 0)
 		{
-			if (AtRest())
-			targetGridPos += (GetActorRightVector()*stepGrid);
+			if (AtRest()&& resultCast(GetActorRightVector()))
+			{targetGridPos += (GetActorRightVector()*stepGrid);
+			isValidSoundPlay(propellerAudioCue);
+			}
 		}
 		if (MovementVector.X < 0)
 		{
-			if (AtRest())
-			targetGridPos -= (GetActorRightVector()*stepGrid);
+			if (AtRest()&& resultCast(-GetActorRightVector()))
+			{targetGridPos -= (GetActorRightVector()*stepGrid);
+			isValidSoundPlay(propellerAudioCue);
+			}
 		}
 		
 		
@@ -220,6 +256,7 @@ void ADungeonCrawlerCharacter::TurnQ()
 	{	
 		UE_LOG(LogTemp, Display, TEXT("AtRest OK"));
 		targetRotation -= FRotator(0,1,0) * 90;
+		isValidSoundPlay(propellerAudioCue);
 	
 	}else
 	UE_LOG(LogTemp, Display, TEXT("AtRest Fail"));
@@ -245,6 +282,7 @@ void ADungeonCrawlerCharacter::TurnE()
 	{	
 		UE_LOG(LogTemp, Display, TEXT("AtRest OK"));
 		targetRotation += FRotator(0,1,0) * 90;
+		isValidSoundPlay(propellerAudioCue);
 	
 	}else
 	UE_LOG(LogTemp, Display, TEXT("AtRest Fail"));
