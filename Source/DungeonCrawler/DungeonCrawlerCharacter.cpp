@@ -35,6 +35,38 @@ ADungeonCrawlerCharacter::ADungeonCrawlerCharacter()
 	//Mesh1P->SetRelativeRotation(FRotator(0.9f, -19.19f, 5.2f));
 	Mesh1P->SetRelativeLocation(FVector(-30.f, 0.f, -150.f));
 
+	 
+
+    // Load our Sound Cue for the propeller sound we created in the editor... 
+    // note your path may be different depending
+    // on where you store the asset on disk.
+    static ConstructorHelpers::FObjectFinder<USoundCue> propellerCue(
+        TEXT("'/Game/Sound/FootStep.FootStep'")
+    );
+
+    // Store a reference to the Cue asset - we'll need it later.
+    propellerAudioCue = propellerCue.Object;
+
+    // Create an audio component, the audio component wraps the Cue, 
+    // and allows us to ineract with
+    // it, and its parameters from code.
+    propellerAudioComponent = CreateDefaultSubobject<UAudioComponent>(
+        TEXT("PropellerAudioComp")
+    );
+    // I don't want the sound playing the moment it's created.
+    propellerAudioComponent->bAutoActivate = false;
+    // I want the sound to follow the pawn around, so I attach it to the Pawns root.
+    propellerAudioComponent->SetupAttachment (RootComponent);
+    // I want the sound to come from slighty in front of the pawn.
+    propellerAudioComponent->SetRelativeLocation(FVector(100.0f, 0.0f, 0.0f));
+
+   // Attach our sound cue to the SoundComponent (outside the constructor)
+   if (propellerAudioCue->IsValidLowLevelFast()) {
+        propellerAudioComponent->SetSound(propellerAudioCue);
+   }
+
+   
+
 }
 
 void ADungeonCrawlerCharacter::BeginPlay()
@@ -98,6 +130,8 @@ void ADungeonCrawlerCharacter::Tick(float DeltaTime)
 
 }
 
+void sound()
+{   }
 bool ADungeonCrawlerCharacter::AtRest()
 {
 	
@@ -105,6 +139,7 @@ bool ADungeonCrawlerCharacter::AtRest()
 	
 	if ((FVector::Distance(GetActorLocation(),targetGridPos) < 50 ) && dotRotate == 1 )
 	{
+  		 propellerAudioComponent->Play();
 		return true;
 	}
 

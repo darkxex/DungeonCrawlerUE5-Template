@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "InputActionValue.h"
+#include "Sound/SoundCue.h"
+#include "Components/AudioComponent.h"
 #include "DungeonCrawlerCharacter.generated.h"
 
 class UInputComponent;
@@ -72,6 +74,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Weapon)
 	bool GetHasRifle();
 
+	
+
 protected:
 	/** Called for movement input */
 	void Move(const FInputActionValue& Value);
@@ -94,9 +98,11 @@ public:
 	USkeletalMeshComponent* GetMesh1P() const { return Mesh1P; }
 	/** Returns FirstPersonCameraComponent subobject **/
 	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
+	USoundCue* propellerAudioCue;
+    UAudioComponent* propellerAudioComponent;
+	
 	virtual void Tick( float DeltaTime ) override;
 	
-	UFUNCTION(BlueprintCallable)
 	bool AtRest();
 	bool AtRestRotate();
 	UPROPERTY(EditAnywhere, Category = Crawler)
@@ -121,7 +127,7 @@ public:
 	bool CanRotateE = true;
 	APlayerController* PController;
 	bool isMovingzero = true;
-
+    
 
 };
 
