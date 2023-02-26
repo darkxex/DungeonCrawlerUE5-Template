@@ -7,6 +7,8 @@
 #include "InputActionValue.h"
 #include "Sound/SoundCue.h"
 #include "Components/AudioComponent.h"
+#include "Components/SphereComponent.h"
+#include "InteractInterface.h"
 #include "DungeonCrawlerCharacter.generated.h"
 
 class UInputComponent;
@@ -47,7 +49,8 @@ class ADungeonCrawlerCharacter : public ACharacter
 	/** Turn right Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
 	class UInputAction* TurnEAction;
-	
+		UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
+	class UInputAction* PressFAction;
 
 	
 public:
@@ -62,17 +65,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* LookAction;
 
-	/** Bool for AnimBP to switch to another animation set */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Weapon)
-	bool bHasRifle;
 
-	/** Setter to set the bool */
-	UFUNCTION(BlueprintCallable, Category = Weapon)
-	void SetHasRifle(bool bNewHasRifle);
-
-	/** Getter for the bool */
-	UFUNCTION(BlueprintCallable, Category = Weapon)
-	bool GetHasRifle();
 
 	
 
@@ -87,19 +80,23 @@ protected:
 	void TurnQReleased();
 	void TurnE();
 	void TurnEReleased();
+	void Fbutton();
 
 protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;
-	// End of APawn interface
 
+    
 public:
 	/** Returns Mesh1P subobject **/
+	UPROPERTY(EditAnywhere, Category = Crawler)
+	USphereComponent* SphereComp;
 	USkeletalMeshComponent* GetMesh1P() const { return Mesh1P; }
 	/** Returns FirstPersonCameraComponent subobject **/
 	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
 	USoundCue* propellerAudioCue;
 	USoundCue* wallAudioCue;
+	USoundCue* buttonAudioCue;
     UAudioComponent* propellerAudioComponent;
 	virtual void Tick( float DeltaTime ) override;
 	
@@ -118,7 +115,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = Crawler)
 	float transitionSpeed = 0.1;
 	UPROPERTY(EditAnywhere, Category = Crawler)
-	float transitionRotationSpeed = 600;
+	float transitionRotationSpeed = 0.1;
 
 	UPROPERTY(EditAnywhere, Category = Crawler)
 	float stepGrid = 600;
@@ -126,8 +123,16 @@ public:
 	bool CanRotateQ = true;
 	bool CanRotateE = true;
 	APlayerController* PController;
-	bool isMovingzero = true;
  	bool resultCast(FVector direction);
+	UPROPERTY(EditDefaultsOnly, Category = Crawler)
+	AActor* Prueba;
 
+	UPROPERTY(EditAnywhere, Category = Crawler)
+	float WaitTime = 3;
+	UPROPERTY(EditAnywhere, Category = Crawler)
+	float LerpDuration = 3;
+	float TimeElapsed = 0;
+
+	bool canMove = true;
 };
 

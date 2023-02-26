@@ -1,7 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "DungeonCrawlerCharacter.h"
-#include "DungeonCrawlerProjectile.h"
 #include "Animation/AnimInstance.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -14,9 +13,7 @@
 
 ADungeonCrawlerCharacter::ADungeonCrawlerCharacter()
 {
-	// Character doesnt have a rifle at start
-	bHasRifle = false;
-	
+
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(55.f, 96.0f);
 		
@@ -34,7 +31,9 @@ ADungeonCrawlerCharacter::ADungeonCrawlerCharacter()
 	Mesh1P->CastShadow = false;
 	//Mesh1P->SetRelativeRotation(FRotator(0.9f, -19.19f, 5.2f));
 	Mesh1P->SetRelativeLocation(FVector(-30.f, 0.f, -150.f));
-
+ 	SphereComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
+    SphereComp->AttachToComponent(GetMesh(), FAttachmentTransformRules::KeepRelativeTransform);
+    SphereComp->SetSphereRadius(200);
 	 
 
     // Load our Sound Cue for the propeller sound we created in the editor... 
@@ -48,9 +47,13 @@ ADungeonCrawlerCharacter::ADungeonCrawlerCharacter()
         TEXT("'/Game/Sound/WallCol.WallCol'")
     );
 
+	static ConstructorHelpers::FObjectFinder<USoundCue> buttonCue(
+        TEXT("'/Game/Sound/ButtonPress.ButtonPress'")
+    );
     // Store a reference to the Cue asset - we'll need it later.
     propellerAudioCue = propellerCue.Object;
 	wallAudioCue = wallCue.Object;
+	buttonAudioCue = buttonCue.Object;
     // Create an audio component, the audio component wraps the Cue, 
     // and allows us to ineract with
     // it, and its parameters from code.
@@ -84,7 +87,7 @@ void ADungeonCrawlerCharacter::BeginPlay()
 		PController = PlayerController;
 		
 	}
-	targetPosition = FVector (FMath::RoundFromZero(GetActorLocation().X),FMath::RoundFromZero(GetActorLocation().Y),FMath::RoundFromZero(GetActorLocation().Z));
+	targetPosition = GetActorLocation();
 	
 	targetGridPos = targetPosition;
 }
@@ -113,19 +116,41 @@ void ADungeonCrawlerCharacter::SetupPlayerInputComponent(class UInputComponent* 
 		EnhancedInputComponent->BindAction(TurnEAction, ETriggerEvent::Triggered, this, &ADungeonCrawlerCharacter::TurnE);
 		EnhancedInputComponent->BindAction(TurnEAction, ETriggerEvent::Completed, this, &ADungeonCrawlerCharacter::TurnEReleased);
 		
+		//Looking
+		EnhancedInputComponent->BindAction(PressFAction, ETriggerEvent::Started, this, &ADungeonCrawlerCharacter::Fbutton);
+		
+		
 	}
 }
+
+
 
 void ADungeonCrawlerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	/*if (WaitTime > 0)
+	{WaitTime -= DeltaTime;
+	return;
+	}
+
+	if (TimeElapsed < LerpDuration)
+	{   
+		TimeElapsed +=DeltaTime;
+	UE_LOG(LogTemp, Display, TEXT("tiempo: %f"),TimeElapsed/3);
+	}*/
 	float disPosition = FVector::Distance(GetActorLocation(),targetPosition);
 	FVector effect = FMath::VInterpConstantTo(GetActorLocation(),targetPosition, DeltaTime, (disPosition / transitionSpeed));
 	SetActorLocation(effect);
+	if (disPosition <1)
+	{SetActorLocation(targetPosition);}
+	
 	//UE_LOG(LogTemp, Display, TEXT("Move Dis %f"),disPosition);
 	
-	FRotator effectRotate = FMath::RInterpConstantTo(PController->GetControlRotation(),targetRotation, DeltaTime, transitionRotationSpeed);
+	FRotator effectRotate = FMath::RInterpConstantTo(PController->GetControlRotation(),targetRotation, DeltaTime, (90/ transitionRotationSpeed));
 	PController->SetControlRotation(effectRotate);
+	
+	
 
 }
 
@@ -133,7 +158,7 @@ bool ADungeonCrawlerCharacter::AtRest()
 {
 	float dotRotate = UKismetMathLibrary::Dot_VectorVector(PController->GetControlRotation().Vector(),targetRotation.Vector());
 	
-	if ((FVector::Distance(GetActorLocation(),targetGridPos) < 50 ) && dotRotate == 1 )
+	if ((FVector::Distance(GetActorLocation(),targetGridPos) < 20 ) && dotRotate == 1 )
 	{
   		 
 		return true;
@@ -181,13 +206,12 @@ void ADungeonCrawlerCharacter::Move(const FInputActionValue& Value)
 	// input is a Vector2D
 	FVector2D MovementVector = Value.Get<FVector2D>();
 
-	if (Controller != nullptr)
+	if (Controller != nullptr && canMove == true)
 	{
-		isMovingzero = false;
 		// add movement 
 		//AddMovementInput(GetActorForwardVector(), MovementVector.Y);
 		if (MovementVector.Y > 0)
-		{
+		{	
 			if (AtRest() && resultCast(GetActorForwardVector()) )
 			{targetGridPos += (GetActorForwardVector()*stepGrid);
 			isValidSoundPlay(propellerAudioCue);
@@ -242,18 +266,16 @@ void ADungeonCrawlerCharacter::Look(const FInputActionValue& Value)
 
 void ADungeonCrawlerCharacter::MoveStop(const FInputActionValue &Value)
 {
-	isMovingzero = true;
 	UE_LOG(LogTemp, Display, TEXT("Stop"));
 }
 
 void ADungeonCrawlerCharacter::TurnQ()
 {
-	if (CanRotateQ == true && isMovingzero == true)
-	{   SetActorLocation(targetPosition);
+	if (CanRotateQ == true  && canMove == true)
+	{  SetActorLocation(targetPosition);
 		UE_LOG(LogTemp, Display, TEXT("Turn Q"));
-
 	if (AtRest())
-	{	
+	{	CanRotateQ = false;
 		UE_LOG(LogTemp, Display, TEXT("AtRest OK"));
 		targetRotation -= FRotator(0,1,0) * 90;
 		isValidSoundPlay(propellerAudioCue);
@@ -263,7 +285,13 @@ void ADungeonCrawlerCharacter::TurnQ()
 
 	if (targetRotation.Yaw > 270 && targetRotation.Yaw < 361) targetRotation.Yaw = 0;
 	if (targetRotation.Yaw < 0) targetRotation.Yaw = 270;
-	CanRotateQ = false;
+	canMove = false;
+	FTimerHandle TimerHandle;
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle, [&]()
+	{
+		canMove = true;
+		UE_LOG(LogTemp, Warning, TEXT("Wait"))
+	}, 0.2, false);
 	}
 	
 		
@@ -275,11 +303,12 @@ void ADungeonCrawlerCharacter::TurnQReleased()
 }
 
 void ADungeonCrawlerCharacter::TurnE()
-{	if (CanRotateE == true )
-{	SetActorLocation(targetPosition);
+{	if (CanRotateE == true  && canMove == true)
+{
+	SetActorLocation(targetPosition);
 	UE_LOG(LogTemp, Display, TEXT("Turn E"));
 	if (AtRest())
-	{	
+	{	CanRotateE = false;
 		UE_LOG(LogTemp, Display, TEXT("AtRest OK"));
 		targetRotation += FRotator(0,1,0) * 90;
 		isValidSoundPlay(propellerAudioCue);
@@ -288,7 +317,13 @@ void ADungeonCrawlerCharacter::TurnE()
 	UE_LOG(LogTemp, Display, TEXT("AtRest Fail"));
 	if (targetRotation.Yaw > 270 && targetRotation.Yaw < 361) targetRotation.Yaw = 0;
 	if (targetRotation.Yaw < 0) targetRotation.Yaw = 270;
-	CanRotateE = false;
+	canMove = false;
+	FTimerHandle TimerHandle;
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle, [&]()
+	{
+		canMove = true;
+		UE_LOG(LogTemp, Warning, TEXT("Wait"))
+	}, 0.2, false);
 	
 	}
 }
@@ -298,12 +333,14 @@ void ADungeonCrawlerCharacter::TurnEReleased()
 	CanRotateE = true;
 }
 
-void ADungeonCrawlerCharacter::SetHasRifle(bool bNewHasRifle)
+void ADungeonCrawlerCharacter::Fbutton()
 {
-	bHasRifle = bNewHasRifle;
-}
-
-bool ADungeonCrawlerCharacter::GetHasRifle()
-{
-	return bHasRifle;
+			TArray<AActor*> Result;
+			GetOverlappingActors(Result,TSubclassOf<AActor>());
+		for (int i = 0; i < Result.Num(); i++) {
+			if (IInteractInterface* ActorCheck = Cast<IInteractInterface>(Result[i]))
+			{	isValidSoundPlay(buttonAudioCue);
+				ActorCheck->OnInteract();
+			} 
+		}
 }
