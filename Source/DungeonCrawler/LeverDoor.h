@@ -30,6 +30,6 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	UFUNCTION()
     virtual void OnInteract();
-
+	USoundWave* HitSound;
 	bool LeverisPressed = false;
 };

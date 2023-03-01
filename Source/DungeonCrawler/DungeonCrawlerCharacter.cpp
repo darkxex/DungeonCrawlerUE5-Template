@@ -68,7 +68,9 @@ ADungeonCrawlerCharacter::ADungeonCrawlerCharacter()
     // I want the sound to come from slighty in front of the pawn.
     propellerAudioComponent->SetRelativeLocation(FVector(100.0f, 0.0f, 0.0f));
 
-
+	transitionSpeed = 0.1;
+	transitionRotationSpeed = 0.1;
+	stepGrid = 600;
 
 }
 
@@ -339,7 +341,7 @@ void ADungeonCrawlerCharacter::Fbutton()
 			GetOverlappingActors(Result,TSubclassOf<AActor>());
 		for (int i = 0; i < Result.Num(); i++) {
 			if (IInteractInterface* ActorCheck = Cast<IInteractInterface>(Result[i]))
-			{	isValidSoundPlay(buttonAudioCue);
+			{	
 				ActorCheck->OnInteract();
 			} 
 		}

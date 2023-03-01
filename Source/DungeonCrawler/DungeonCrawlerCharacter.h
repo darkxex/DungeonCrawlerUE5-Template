@@ -113,12 +113,12 @@ public:
 	UPROPERTY(EditAnywhere, Category = Crawler)
 	bool smoothTransition = false;
 	UPROPERTY(EditAnywhere, Category = Crawler)
-	float transitionSpeed = 0.1;
+	float transitionSpeed ;
 	UPROPERTY(EditAnywhere, Category = Crawler)
-	float transitionRotationSpeed = 0.1;
+	float transitionRotationSpeed;
 
 	UPROPERTY(EditAnywhere, Category = Crawler)
-	float stepGrid = 600;
+	float stepGrid;
 	void isValidSoundPlay(USoundCue* Sound);
 	bool CanRotateQ = true;
 	bool CanRotateE = true;
@@ -132,7 +132,6 @@ public:
 	UPROPERTY(EditAnywhere, Category = Crawler)
 	float LerpDuration = 3;
 	float TimeElapsed = 0;
-
 	bool canMove = true;
 };
 
